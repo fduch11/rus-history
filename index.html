@@ -3,32 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f4efe5">
+  <meta name="theme-color" content="#efe8dc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="История Руси">
   <title>История Руси</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="images/app-icon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="app-header">
-    <div><p class="eyebrow">Историческая лента</p><h1>История Руси</h1></div>
-    <button id="themeToggle" class="icon-button" type="button" aria-label="Переключить тему">☾</button>
+    <div><p class="eyebrow">Интерактивная хронология</p><h1>История Руси</h1></div>
+    <div class="header-actions"><button id="textSizeButton" class="icon-button" type="button" aria-label="Изменить размер текста">А</button><button id="themeToggle" class="icon-button" type="button" aria-label="Переключить тему">☾</button></div>
   </header>
   <main>
+    <section id="dailyCard" class="daily-card" aria-labelledby="dailyTitle"><div><p class="eyebrow">Событие дня</p><p id="dailyYear" class="daily-year"></p><h2 id="dailyTitle"></h2><p id="dailySummary"></p></div><button id="dailyOpen" class="primary-button" type="button">Открыть событие</button></section>
+    <section class="progress-card" aria-label="Прогресс изучения"><div class="progress-line"><strong id="progressText"></strong><span id="progressPercent"></span></div><div class="progress-track"><span id="progressBar"></span></div></section>
     <section class="controls" aria-label="Поиск и фильтры">
-      <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Поиск по событиям" autocomplete="off"></label>
+      <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Год, событие, личность…" autocomplete="off"></label>
       <div id="periodFilters" class="filters" role="group" aria-label="Исторические периоды"></div>
-      <label class="favorites-switch"><input id="favoritesOnly" type="checkbox"><span>Только избранное</span></label>
+      <div id="centuryNav" class="filters century-nav" role="navigation" aria-label="Навигация по векам"></div>
+      <div class="control-row"><label class="favorites-switch"><input id="favoritesOnly" type="checkbox"><span>Избранное</span></label><label class="select-label">Сортировка<select id="sortSelect"><option value="asc">Сначала древние</option><option value="desc">Сначала новые</option><option value="unread">Сначала неизученные</option></select></label></div>
     </section>
     <p id="resultCount" class="result-count" aria-live="polite"></p>
     <section id="timeline" class="timeline" aria-label="Исторические события"></section>
-    <div id="emptyState" class="empty-state" hidden><strong>Ничего не найдено</strong><span>Измените запрос или выбранный период.</span></div>
+    <div id="emptyState" class="empty-state" hidden><strong>Ничего не найдено</strong><span>Измените запрос или фильтры.</span></div>
+    <section class="quiz-panel" aria-labelledby="quizHeading"><div class="section-heading"><div><p class="eyebrow">Проверка знаний</p><h2 id="quizHeading">Исторический тест</h2></div><span id="quizScore" class="score-badge"></span></div><div id="quizContent"></div><button id="quizNext" class="primary-button" type="button">Новый вопрос</button></section>
+    <section class="install-panel"><div><p class="eyebrow">На экран iPhone</p><h2>Работает как приложение</h2><p>В Safari нажмите «Поделиться» → «На экран Домой».</p></div><button id="installButton" class="secondary-button" type="button" hidden>Установить</button></section>
   </main>
-  <dialog id="eventModal" class="modal">
-    <article class="modal-card">
-      <button id="modalClose" class="modal-close" type="button" aria-label="Закрыть">×</button>
-      <img id="modalImage" src="images/history.svg" alt="">
-      <div class="modal-content"><span id="modalPeriod" class="period-badge"></span><p id="modalYear" class="modal-year"></p><h2 id="modalTitle"></h2><p id="modalDescription"></p><button id="modalFavorite" class="favorite-action" type="button"></button></div>
-    </article>
-  </dialog>
+  <dialog id="eventModal" class="modal"><article class="modal-card"><button id="modalClose" class="modal-close" type="button" aria-label="Закрыть">×</button><img id="modalImage" src="images/chronicle.svg" alt=""><div class="modal-content"><div class="modal-meta"><span id="modalPeriod" class="period-badge"></span><span id="modalViewed" class="viewed-badge"></span></div><p id="modalYear" class="modal-year"></p><h2 id="modalTitle"></h2><p id="modalDescription" class="lead"></p><div class="detail-grid"><section><h3>Причины</h3><p id="modalCauses"></p></section><section><h3>Последствия</h3><p id="modalConsequences"></p></section><section><h3>Личности</h3><p id="modalPersons"></p></section><section><h3>Интересный факт</h3><p id="modalFact"></p></section></div><section class="map-card"><div class="map-head"><strong id="modalLocation"></strong><span>Условная карта</span></div><div class="map-stage" aria-hidden="true"><img src="images/map.svg" alt=""><span id="mapMarker" class="map-marker"></span></div></section><div class="modal-actions"><button id="modalFavorite" class="secondary-button" type="button"></button><button id="shareButton" class="secondary-button" type="button">Поделиться</button></div><div class="event-navigation"><button id="previousEvent" type="button">← Предыдущее</button><button id="nextEvent" type="button">Следующее →</button></div></div></article></dialog>
   <script src="data.js"></script><script src="app.js"></script>
 </body>
 </html>
