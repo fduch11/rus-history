@@ -25,6 +25,23 @@ main{width:min(100%,760px);margin:auto;padding:16px 16px calc(36px + env(safe-ar
 .favorites-switch{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:14px}
 .favorites-switch input{width:19px;height:19px;accent-color:var(--accent)}
 .reset-button{min-height:44px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font-weight:700}
+.progress-panel{display:grid;gap:13px;margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow)}
+.progress-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.progress-panel h2{margin:0;font:700 23px/1.1 Georgia,serif}
+.progress-viewed{margin:0;color:var(--muted);font-size:13px;text-align:right}
+.overall-progress-text{margin:0;font-weight:700}
+.progress-track{height:9px;overflow:hidden;border-radius:999px;background:var(--surface2)}
+.progress-track-large{height:13px}
+.progress-fill{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--gold));transition:width .25s ease}
+.period-progress-details{border-top:1px solid var(--line);padding-top:12px}
+.period-progress-details summary{cursor:pointer;font-weight:700}
+.period-progress-list{display:grid;gap:12px;margin-top:12px}
+.period-progress-row{display:grid;gap:6px}
+.period-progress-heading{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:13px}
+.progress-actions{display:grid;grid-template-columns:1fr;gap:8px}
+.progress-actions button{min-height:44px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font-weight:700}
+.progress-actions .danger-action{color:var(--accent)}
+.progress-status{min-height:20px;margin:0;color:var(--muted);font-size:13px}
 .result-count{margin:18px 0 10px;color:var(--muted);font-size:14px}
 .timeline{display:grid;gap:26px}
 .century-group{content-visibility:auto;contain-intrinsic-size:800px;scroll-margin-top:155px}
@@ -88,6 +105,6 @@ main{width:min(100%,760px);margin:auto;padding:16px 16px calc(36px + env(safe-ar
 .century-nav-button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .back-to-top{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));z-index:30;width:48px;height:48px;border:0;border-radius:50%;background:var(--text);color:var(--bg);box-shadow:var(--shadow);font-size:24px;opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s ease,transform .2s ease}
 .back-to-top.visible{opacity:1;transform:translateY(0);pointer-events:auto}
-@media(min-width:560px){.select-grid{grid-template-columns:1fr 1fr}.modal-neighbors{grid-template-columns:1fr 1fr}.modal-actions{grid-template-columns:1fr 1fr 1fr}}
+@media(min-width:560px){.select-grid{grid-template-columns:1fr 1fr}.modal-neighbors{grid-template-columns:1fr 1fr}.modal-actions{grid-template-columns:1fr 1fr 1fr}.progress-actions{grid-template-columns:1fr 1fr 1fr}}
 @media(min-width:700px){.modal{margin:auto;border-radius:24px}.event-card{display:grid;grid-template-columns:210px 1fr}.event-image{height:100%;min-height:220px}.century-navigation{margin-inline:0;border:1px solid var(--line);border-radius:14px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.event-card:active{transform:none}.back-to-top{transition:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.event-card:active{transform:none}.back-to-top{transition:none}.progress-fill{transition:none}}
