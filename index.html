@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f4efe5">
   <title>История Руси</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="daily-event.css">
 </head>
 <body>
   <header class="app-header">
@@ -32,10 +33,7 @@
     </section>
 
     <section class="controls" aria-label="Поиск, фильтры и сортировка">
-      <label class="search-box">
-        <span aria-hidden="true">⌕</span>
-        <input id="searchInput" type="search" placeholder="Поиск по событиям, местам и личностям" autocomplete="off">
-      </label>
+      <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Поиск по событиям, местам и личностям" autocomplete="off"></label>
       <div id="periodFilters" class="filters" role="group" aria-label="Исторические периоды"></div>
       <div class="select-grid">
         <label class="select-field"><span>Век</span><select id="centuryFilter" aria-label="Фильтр по веку"></select></label>
