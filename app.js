@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const AppConfig = Object.freeze({
-    schemaVersion: 3,
+    schemaVersion: 4,
     storageKey: 'rusHistory',
     legacyKeys: Object.freeze({
       theme: 'rusHistoryTheme',
@@ -9,7 +9,10 @@
     }),
     defaultTheme: 'light',
     validThemes: Object.freeze(['light', 'dark']),
-    defaultPeriod: 'Все'
+    defaultPeriod: 'Все',
+    defaultCentury: 'Все века',
+    defaultSort: 'oldest',
+    validSorts: Object.freeze(['oldest', 'newest', 'title'])
   });
 
   const Storage = (() => {
@@ -22,28 +25,40 @@
       schemaVersion: AppConfig.schemaVersion,
       preferences: { theme: null },
       collections: { favorites: [], viewed: [], studied: [] },
-      interface: { query: '', period: AppConfig.defaultPeriod, favoritesOnly: false }
+      interface: {
+        query: '',
+        period: AppConfig.defaultPeriod,
+        century: AppConfig.defaultCentury,
+        sort: AppConfig.defaultSort,
+        favoritesOnly: false,
+        unviewedOnly: false
+      }
     });
 
     const normalizeTheme = value => AppConfig.validThemes.includes(value) ? value : null;
+    const normalizeSort = value => AppConfig.validSorts.includes(value) ? value : AppConfig.defaultSort;
 
     const normalize = value => {
       const defaults = createDefaults();
       if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults;
+      const ui = value.interface && typeof value.interface === 'object' ? value.interface : {};
+      const collections = value.collections && typeof value.collections === 'object' ? value.collections : {};
+      const preferences = value.preferences && typeof value.preferences === 'object' ? value.preferences : {};
       return {
         schemaVersion: AppConfig.schemaVersion,
-        preferences: {
-          theme: normalizeTheme(value.preferences && value.preferences.theme)
-        },
+        preferences: { theme: normalizeTheme(preferences.theme) },
         collections: {
-          favorites: normalizeIds(value.collections && value.collections.favorites),
-          viewed: normalizeIds(value.collections && value.collections.viewed),
-          studied: normalizeIds(value.collections && value.collections.studied)
+          favorites: normalizeIds(collections.favorites),
+          viewed: normalizeIds(collections.viewed),
+          studied: normalizeIds(collections.studied)
         },
         interface: {
-          query: typeof (value.interface && value.interface.query) === 'string' ? value.interface.query : '',
-          period: typeof (value.interface && value.interface.period) === 'string' ? value.interface.period : AppConfig.defaultPeriod,
-          favoritesOnly: Boolean(value.interface && value.interface.favoritesOnly)
+          query: typeof ui.query === 'string' ? ui.query : '',
+          period: typeof ui.period === 'string' ? ui.period : AppConfig.defaultPeriod,
+          century: typeof ui.century === 'string' ? ui.century : AppConfig.defaultCentury,
+          sort: normalizeSort(ui.sort),
+          favoritesOnly: Boolean(ui.favoritesOnly),
+          unviewedOnly: Boolean(ui.unviewedOnly)
         }
       };
     };
@@ -70,7 +85,7 @@
       try {
         localStorage.removeItem(key);
       } catch {
-        // Приложение продолжает работу даже при недоступном localStorage.
+        // Приложение продолжает работу при недоступном localStorage.
       }
     };
 
@@ -102,7 +117,10 @@
   const state = {
     query: persisted.interface.query,
     period: persisted.interface.period,
+    century: persisted.interface.century,
+    sort: persisted.interface.sort,
     favoritesOnly: persisted.interface.favoritesOnly,
+    unviewedOnly: persisted.interface.unviewedOnly,
     favorites: new Set(persisted.collections.favorites),
     viewed: new Set(persisted.collections.viewed),
     studied: new Set(persisted.collections.studied),
@@ -114,7 +132,11 @@
     timeline: document.getElementById('timeline'),
     filters: document.getElementById('periodFilters'),
     searchInput: document.getElementById('searchInput'),
+    centuryFilter: document.getElementById('centuryFilter'),
+    sortSelect: document.getElementById('sortSelect'),
     favoritesOnly: document.getElementById('favoritesOnly'),
+    unviewedOnly: document.getElementById('unviewedOnly'),
+    resetFilters: document.getElementById('resetFilters'),
     resultCount: document.getElementById('resultCount'),
     emptyState: document.getElementById('emptyState'),
     themeToggle: document.getElementById('themeToggle'),
@@ -135,6 +157,12 @@
     return element;
   };
 
+  const flattenText = value => {
+    if (Array.isArray(value)) return value.map(flattenText).join(' ');
+    if (value && typeof value === 'object') return Object.values(value).map(flattenText).join(' ');
+    return value === null || value === undefined ? '' : String(value);
+  };
+
   function saveState() {
     Storage.save({
       schemaVersion: AppConfig.schemaVersion,
@@ -147,7 +175,10 @@
       interface: {
         query: state.query,
         period: state.period,
-        favoritesOnly: state.favoritesOnly
+        century: state.century,
+        sort: state.sort,
+        favoritesOnly: state.favoritesOnly,
+        unviewedOnly: state.unviewedOnly
       }
     });
   }
@@ -161,11 +192,13 @@
   }
 
   function initTheme() {
-    const preferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : AppConfig.defaultTheme;
+    const preferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : AppConfig.defaultTheme;
     setTheme(state.theme || preferred, false);
   }
 
-  function createFilters() {
+  function createPeriodFilters() {
     const periods = [AppConfig.defaultPeriod, ...new Set(HISTORY_EVENTS.map(event => event.period))];
     if (!periods.includes(state.period)) state.period = AppConfig.defaultPeriod;
     elements.filters.replaceChildren();
@@ -174,18 +207,57 @@
       const button = createElement('button', `filter-button${period === state.period ? ' active' : ''}`, period);
       button.type = 'button';
       button.dataset.period = period;
+      button.setAttribute('aria-pressed', String(period === state.period));
       fragment.append(button);
     });
     elements.filters.append(fragment);
   }
 
+  function createCenturyFilter() {
+    const centuries = [AppConfig.defaultCentury, ...new Set(HISTORY_EVENTS.map(event => event.century))];
+    if (!centuries.includes(state.century)) state.century = AppConfig.defaultCentury;
+    elements.centuryFilter.replaceChildren();
+    centuries.forEach(century => {
+      const option = createElement('option', '', century);
+      option.value = century;
+      elements.centuryFilter.append(option);
+    });
+    elements.centuryFilter.value = state.century;
+  }
+
+  function eventSearchText(event) {
+    return [
+      event.year,
+      event.sortYear,
+      event.century,
+      event.title,
+      event.period,
+      event.place,
+      event.summary,
+      event.description,
+      event.course,
+      event.causes,
+      event.consequences,
+      event.people,
+      event.fact,
+      event.sources
+    ].map(flattenText).join(' ').toLocaleLowerCase('ru');
+  }
+
   function visibleEvents() {
     const query = state.query.trim().toLocaleLowerCase('ru');
-    return HISTORY_EVENTS.filter(event => {
-      const text = `${event.year} ${event.title} ${event.summary} ${event.description} ${event.period}`.toLocaleLowerCase('ru');
+    const filtered = HISTORY_EVENTS.filter(event => {
       return (state.period === AppConfig.defaultPeriod || event.period === state.period)
+        && (state.century === AppConfig.defaultCentury || event.century === state.century)
         && (!state.favoritesOnly || state.favorites.has(event.id))
-        && (!query || text.includes(query));
+        && (!state.unviewedOnly || !state.viewed.has(event.id))
+        && (!query || eventSearchText(event).includes(query));
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (state.sort === 'newest') return b.sortYear - a.sortYear || b.id - a.id;
+      if (state.sort === 'title') return a.title.localeCompare(b.title, 'ru') || a.sortYear - b.sortYear;
+      return a.sortYear - b.sortYear || a.id - b.id;
     });
   }
 
@@ -262,7 +334,7 @@
     });
 
     elements.timeline.replaceChildren(fragment);
-    elements.resultCount.textContent = `Событий: ${events.length} · Просмотрено: ${state.viewed.size} · Изучено: ${state.studied.size}`;
+    elements.resultCount.textContent = `Найдено: ${events.length} · Просмотрено: ${state.viewed.size} · Изучено: ${state.studied.size}`;
     elements.emptyState.hidden = events.length !== 0;
   }
 
@@ -306,11 +378,28 @@
     elements.modal.showModal();
   }
 
+  function resetFilters() {
+    state.query = '';
+    state.period = AppConfig.defaultPeriod;
+    state.century = AppConfig.defaultCentury;
+    state.sort = AppConfig.defaultSort;
+    state.favoritesOnly = false;
+    state.unviewedOnly = false;
+    elements.searchInput.value = '';
+    elements.centuryFilter.value = state.century;
+    elements.sortSelect.value = state.sort;
+    elements.favoritesOnly.checked = false;
+    elements.unviewedOnly.checked = false;
+    createPeriodFilters();
+    saveState();
+    render();
+  }
+
   elements.filters.addEventListener('click', event => {
     const button = event.target.closest('[data-period]');
     if (!button) return;
     state.period = button.dataset.period;
-    createFilters();
+    createPeriodFilters();
     saveState();
     render();
   });
@@ -321,12 +410,31 @@
     render();
   });
 
+  elements.centuryFilter.addEventListener('change', () => {
+    state.century = elements.centuryFilter.value;
+    saveState();
+    render();
+  });
+
+  elements.sortSelect.addEventListener('change', () => {
+    state.sort = AppConfig.validSorts.includes(elements.sortSelect.value) ? elements.sortSelect.value : AppConfig.defaultSort;
+    saveState();
+    render();
+  });
+
   elements.favoritesOnly.addEventListener('change', () => {
     state.favoritesOnly = elements.favoritesOnly.checked;
     saveState();
     render();
   });
 
+  elements.unviewedOnly.addEventListener('change', () => {
+    state.unviewedOnly = elements.unviewedOnly.checked;
+    saveState();
+    render();
+  });
+
+  elements.resetFilters.addEventListener('click', resetFilters);
   elements.themeToggle.addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
 
   elements.timeline.addEventListener('click', event => {
@@ -363,9 +471,12 @@
   });
 
   initTheme();
-  createFilters();
+  createPeriodFilters();
+  createCenturyFilter();
   elements.searchInput.value = state.query;
+  elements.sortSelect.value = state.sort;
   elements.favoritesOnly.checked = state.favoritesOnly;
+  elements.unviewedOnly.checked = state.unviewedOnly;
   saveState();
   render();
 })();
