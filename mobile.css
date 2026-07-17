@@ -1,0 +1,44 @@
+:root{--app-viewport-height:100dvh;--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+html,body{max-width:100%;overflow-x:hidden}
+body{min-height:var(--app-viewport-height);overscroll-behavior-x:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.app-header{padding-left:max(16px,var(--safe-left));padding-right:max(16px,var(--safe-right))}
+main{max-width:100%;padding-left:max(12px,var(--safe-left));padding-right:max(12px,var(--safe-right));padding-bottom:calc(40px + var(--safe-bottom))}
+img,svg,video,canvas{max-width:100%}
+input,select,button{max-width:100%}
+.search-box input{min-width:0}
+.filters,.century-navigation-list{overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+.modal{max-height:min(92dvh,calc(var(--app-viewport-height) - 8px));padding-left:var(--safe-left);padding-right:var(--safe-right)}
+.modal-card{max-height:min(92dvh,calc(var(--app-viewport-height) - 8px));overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.modal-content{padding-bottom:calc(24px + var(--safe-bottom))}
+.back-to-top{right:max(14px,var(--safe-right));bottom:calc(14px + var(--safe-bottom))}
+.event-title,.daily-event h2,.quiz-question,.modal h2,.map-status,.progress-viewed{overflow-wrap:anywhere;word-break:normal}
+.event-footer,.progress-panel-heading,.map-heading,.quiz-heading{min-width:0}
+@media(max-width:374px){
+  .app-header{padding-top:calc(12px + var(--safe-top));padding-bottom:10px}
+  h1{font-size:26px}
+  main{padding-top:12px}
+  .daily-event,.quiz-panel,.map-panel,.reading-settings,.progress-panel{border-radius:15px;padding:13px}
+  .daily-event-actions,.quiz-actions,.progress-actions,.modal-actions{grid-template-columns:1fr}
+  .event-body{padding:13px}
+  .event-title{font-size:19px}
+  .event-year{font-size:22px}
+  .event-footer{align-items:stretch;flex-direction:column}
+  .event-statuses{min-height:0}
+  .study-button{width:100%}
+  .century-events{padding-left:18px}
+  .century-header{padding-inline:10px}
+  .century-title{font-size:20px}
+  .modal-content{padding-left:16px;padding-right:16px}
+}
+@media(max-width:480px) and (orientation:landscape){
+  .app-header{position:relative;padding-top:calc(8px + var(--safe-top));padding-bottom:8px}
+  .century-navigation{top:0}
+  .century-header{top:54px}
+  .modal{max-width:100%;max-height:var(--app-viewport-height);border-radius:0}
+  .modal-card{max-height:var(--app-viewport-height)}
+  .modal-card img{height:150px}
+}
+@media(min-width:375px) and (max-width:559px){
+  main{padding-left:max(16px,var(--safe-left));padding-right:max(16px,var(--safe-right))}
+}
+@supports not (height:100dvh){:root{--app-viewport-height:100vh}}
