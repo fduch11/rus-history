@@ -1,7 +1,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'rus-history-';
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 
 const LOCAL_RESOURCES = Object.freeze([
@@ -14,9 +14,11 @@ const LOCAL_RESOURCES = Object.freeze([
   './map.css',
   './reading-settings.css',
   './accessibility.css',
+  './performance.css',
   './data.js',
   './event-details.js',
   './illustrations.js',
+  './performance.js',
   './app.js',
   './navigation.js',
   './modal-details.js',
