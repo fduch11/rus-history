@@ -125,7 +125,9 @@
     viewed: new Set(persisted.collections.viewed),
     studied: new Set(persisted.collections.studied),
     theme: persisted.preferences.theme,
-    activeEventId: null
+    activeEventId: null,
+    mapFilterIds: null,
+    mapFilterLabel: ''
   };
 
   const elements = {
@@ -251,6 +253,7 @@
         && (state.century === AppConfig.defaultCentury || event.century === state.century)
         && (!state.favoritesOnly || state.favorites.has(event.id))
         && (!state.unviewedOnly || !state.viewed.has(event.id))
+        && (!state.mapFilterIds || state.mapFilterIds.has(event.id))
         && (!query || eventSearchText(event).includes(query));
     });
 
@@ -334,8 +337,26 @@
     });
 
     elements.timeline.replaceChildren(fragment);
-    elements.resultCount.textContent = `Найдено: ${events.length} · Просмотрено: ${state.viewed.size} · Изучено: ${state.studied.size}`;
+    const mapSuffix = state.mapFilterLabel ? ` · Карта: ${state.mapFilterLabel}` : '';
+    elements.resultCount.textContent = `Найдено: ${events.length} · Просмотрено: ${state.viewed.size} · Изучено: ${state.studied.size}${mapSuffix}`;
     elements.emptyState.hidden = events.length !== 0;
+  }
+
+  function applyMapFilter(detail) {
+    const ids = detail && Array.isArray(detail.eventIds)
+      ? [...new Set(detail.eventIds.map(Number).filter(Number.isFinite))]
+      : [];
+    state.mapFilterIds = ids.length > 0 ? new Set(ids) : null;
+    state.mapFilterLabel = detail && typeof detail.label === 'string' ? detail.label : '';
+    render();
+  }
+
+  function clearMapFilter(notify = true) {
+    if (!state.mapFilterIds && !state.mapFilterLabel) return;
+    state.mapFilterIds = null;
+    state.mapFilterLabel = '';
+    render();
+    if (notify) window.dispatchEvent(new CustomEvent('rus-history:map-filter-cleared'));
   }
 
   function updateModalFavorite() {
@@ -391,6 +412,7 @@
     elements.favoritesOnly.checked = false;
     elements.unviewedOnly.checked = false;
     createPeriodFilters();
+    clearMapFilter();
     saveState();
     render();
   }
@@ -468,6 +490,13 @@
   });
   elements.modal.addEventListener('close', () => {
     state.activeEventId = null;
+  });
+
+  window.addEventListener('rus-history:set-map-filter', event => {
+    applyMapFilter(event.detail);
+  });
+  window.addEventListener('rus-history:clear-map-filter', () => {
+    clearMapFilter(false);
   });
 
   initTheme();
