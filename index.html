@@ -8,48 +8,25 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="daily-event.css">
   <link rel="stylesheet" href="quiz.css">
+  <link rel="stylesheet" href="map.css">
 </head>
 <body>
-  <header class="app-header">
-    <div><p class="eyebrow">Историческая лента</p><h1>История Руси</h1></div>
-    <button id="themeToggle" class="icon-button" type="button" aria-label="Переключить тему">☾</button>
-  </header>
+  <header class="app-header"><div><p class="eyebrow">Историческая лента</p><h1>История Руси</h1></div><button id="themeToggle" class="icon-button" type="button" aria-label="Переключить тему">☾</button></header>
   <main>
-    <section id="dailyEvent" class="daily-event" aria-labelledby="dailyEventTitle">
-      <img id="dailyEventImage" src="images/fallback.svg" alt="">
-      <div class="daily-event-content"><p class="eyebrow">Событие дня</p><p id="dailyEventYear" class="daily-event-year"></p><h2 id="dailyEventTitle"></h2><p id="dailyEventSummary" class="daily-event-summary"></p><div class="daily-event-actions"><button id="dailyEventOpen" type="button">Открыть событие</button><button id="dailyEventAnother" type="button">Показать другое</button></div></div>
-    </section>
+    <section id="dailyEvent" class="daily-event" aria-labelledby="dailyEventTitle"><img id="dailyEventImage" src="images/fallback.svg" alt=""><div class="daily-event-content"><p class="eyebrow">Событие дня</p><p id="dailyEventYear" class="daily-event-year"></p><h2 id="dailyEventTitle"></h2><p id="dailyEventSummary" class="daily-event-summary"></p><div class="daily-event-actions"><button id="dailyEventOpen" type="button">Открыть событие</button><button id="dailyEventAnother" type="button">Показать другое</button></div></div></section>
 
-    <section id="quizPanel" class="quiz-panel" aria-labelledby="quizTitle">
-      <div class="quiz-heading"><div><p class="eyebrow">Проверка знаний</p><h2 id="quizTitle">Исторический тест</h2></div><p id="quizStats" class="quiz-stats"></p></div>
-      <p id="quizType" class="quiz-type"></p>
-      <p id="quizQuestion" class="quiz-question"></p>
-      <div id="quizOptions" class="quiz-options"></div>
-      <p id="quizFeedback" class="quiz-feedback" aria-live="polite"></p>
-      <p id="quizProgress" class="quiz-progress"></p>
-      <div class="quiz-actions"><button id="quizNext" class="primary" type="button" hidden>Следующий вопрос</button><button id="quizRestart" type="button" hidden>Пройти ещё раз</button></div>
-    </section>
+    <section id="quizPanel" class="quiz-panel" aria-labelledby="quizTitle"><div class="quiz-heading"><div><p class="eyebrow">Проверка знаний</p><h2 id="quizTitle">Исторический тест</h2></div><p id="quizStats" class="quiz-stats"></p></div><p id="quizType" class="quiz-type"></p><p id="quizQuestion" class="quiz-question"></p><div id="quizOptions" class="quiz-options"></div><p id="quizFeedback" class="quiz-feedback" aria-live="polite"></p><p id="quizProgress" class="quiz-progress"></p><div class="quiz-actions"><button id="quizNext" class="primary" type="button" hidden>Следующий вопрос</button><button id="quizRestart" type="button" hidden>Пройти ещё раз</button></div></section>
 
-    <section class="controls" aria-label="Поиск, фильтры и сортировка">
-      <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Поиск по событиям, местам и личностям" autocomplete="off"></label>
-      <div id="periodFilters" class="filters" role="group" aria-label="Исторические периоды"></div>
-      <div class="select-grid"><label class="select-field"><span>Век</span><select id="centuryFilter" aria-label="Фильтр по веку"></select></label><label class="select-field"><span>Сортировка</span><select id="sortSelect" aria-label="Сортировка событий"><option value="oldest">От древних к новым</option><option value="newest">От новых к древним</option><option value="title">По названию</option></select></label></div>
-      <div class="toggle-row"><label class="favorites-switch"><input id="favoritesOnly" type="checkbox"><span>Только избранное</span></label><label class="favorites-switch"><input id="unviewedOnly" type="checkbox"><span>Только непросмотренные</span></label></div>
-      <button id="resetFilters" class="reset-button" type="button">Сбросить фильтры</button>
-    </section>
+    <section id="mapPanel" class="map-panel" aria-labelledby="mapTitle"><div class="map-heading"><div><p class="eyebrow">Историческая география</p><h2 id="mapTitle">Карта событий</h2></div><p id="mapStatus" class="map-status" aria-live="polite"></p></div><svg id="historyMap" class="history-map"></svg><div class="map-actions"><button id="mapReset" type="button" hidden>Показать все места</button></div></section>
 
-    <section id="progressPanel" class="progress-panel" aria-labelledby="progressTitle">
-      <div class="progress-panel-heading"><div><p class="eyebrow">Личный прогресс</p><h2 id="progressTitle">Изучение истории</h2></div><p id="viewedProgressText" class="progress-viewed"></p></div>
-      <p id="overallProgressText" class="overall-progress-text"></p><div id="overallProgressBar" class="progress-track progress-track-large" role="progressbar" aria-label="Общий прогресс изучения" aria-valuemin="0" aria-valuemax="108" aria-valuenow="0"><span class="progress-fill"></span></div>
-      <details class="period-progress-details"><summary>Прогресс по периодам</summary><div id="periodProgressList" class="period-progress-list"></div></details>
-      <div class="progress-actions"><button id="exportProgress" type="button">Экспорт JSON</button><button id="importProgress" type="button">Импорт JSON</button><button id="resetProgress" class="danger-action" type="button">Сбросить данные</button><input id="importProgressFile" type="file" accept="application/json,.json" hidden></div><p id="progressStatus" class="progress-status" aria-live="polite"></p>
-    </section>
+    <section class="controls" aria-label="Поиск, фильтры и сортировка"><label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Поиск по событиям, местам и личностям" autocomplete="off"></label><div id="periodFilters" class="filters" role="group" aria-label="Исторические периоды"></div><div class="select-grid"><label class="select-field"><span>Век</span><select id="centuryFilter" aria-label="Фильтр по веку"></select></label><label class="select-field"><span>Сортировка</span><select id="sortSelect" aria-label="Сортировка событий"><option value="oldest">От древних к новым</option><option value="newest">От новых к древним</option><option value="title">По названию</option></select></label></div><div class="toggle-row"><label class="favorites-switch"><input id="favoritesOnly" type="checkbox"><span>Только избранное</span></label><label class="favorites-switch"><input id="unviewedOnly" type="checkbox"><span>Только непросмотренные</span></label></div><button id="resetFilters" class="reset-button" type="button">Сбросить фильтры</button></section>
 
-    <nav id="centuryNavigation" class="century-navigation" aria-label="Навигация по векам" hidden><div id="centuryNavigationList" class="century-navigation-list"></div></nav>
-    <p id="resultCount" class="result-count" aria-live="polite"></p><section id="timeline" class="timeline" aria-label="Исторические события"></section><div id="emptyState" class="empty-state" hidden><strong>Ничего не найдено</strong><span>Измените запрос, фильтры или сортировку.</span></div>
+    <section id="progressPanel" class="progress-panel" aria-labelledby="progressTitle"><div class="progress-panel-heading"><div><p class="eyebrow">Личный прогресс</p><h2 id="progressTitle">Изучение истории</h2></div><p id="viewedProgressText" class="progress-viewed"></p></div><p id="overallProgressText" class="overall-progress-text"></p><div id="overallProgressBar" class="progress-track progress-track-large" role="progressbar" aria-label="Общий прогресс изучения" aria-valuemin="0" aria-valuemax="108" aria-valuenow="0"><span class="progress-fill"></span></div><details class="period-progress-details"><summary>Прогресс по периодам</summary><div id="periodProgressList" class="period-progress-list"></div></details><div class="progress-actions"><button id="exportProgress" type="button">Экспорт JSON</button><button id="importProgress" type="button">Импорт JSON</button><button id="resetProgress" class="danger-action" type="button">Сбросить данные</button><input id="importProgressFile" type="file" accept="application/json,.json" hidden></div><p id="progressStatus" class="progress-status" aria-live="polite"></p></section>
+
+    <nav id="centuryNavigation" class="century-navigation" aria-label="Навигация по векам" hidden><div id="centuryNavigationList" class="century-navigation-list"></div></nav><p id="resultCount" class="result-count" aria-live="polite"></p><section id="timeline" class="timeline" aria-label="Исторические события"></section><div id="emptyState" class="empty-state" hidden><strong>Ничего не найдено</strong><span>Измените запрос, фильтры или сортировку.</span></div>
   </main>
   <button id="backToTop" class="back-to-top" type="button" aria-label="Вернуться наверх" aria-hidden="true">↑</button>
   <dialog id="eventModal" class="modal"><article class="modal-card"><button id="modalClose" class="modal-close" type="button" aria-label="Закрыть">×</button><img id="modalImage" src="images/fallback.svg" alt=""><div class="modal-content"><div class="modal-heading-row"><span id="modalPeriod" class="period-badge"></span><span id="modalPlace" class="place-badge"></span></div><p id="modalYear" class="modal-year"></p><h2 id="modalTitle"></h2><section class="modal-section"><h3>Описание</h3><p id="modalDescription"></p></section><section class="modal-section"><h3>Ход события</h3><p id="modalCourse"></p></section><section class="modal-section"><h3>Причины</h3><ul id="modalCauses"></ul></section><section class="modal-section"><h3>Последствия</h3><ul id="modalConsequences"></ul></section><section class="modal-section"><h3>Ключевые личности</h3><ul id="modalPeople"></ul></section><section class="modal-section modal-fact"><h3>Интересный факт</h3><p id="modalFact"></p></section><section class="modal-section"><h3>Источники</h3><ul id="modalSources"></ul></section><section class="modal-section"><h3>Связанные события</h3><div id="modalRelated" class="related-events"></div></section><div class="modal-neighbors" aria-label="Соседние события"><button id="modalPrevious" type="button"></button><button id="modalNext" type="button"></button></div><div class="modal-actions"><button id="modalStudied" class="secondary-action" type="button" aria-pressed="false">Отметить изученным</button><button id="modalFavorite" class="favorite-action" type="button"></button><button id="modalShare" class="secondary-action" type="button">Поделиться</button></div><p id="modalShareStatus" class="share-status" aria-live="polite"></p></div></article></dialog>
-  <script src="data.js"></script><script src="event-details.js"></script><script src="illustrations.js"></script><script src="app.js"></script><script src="navigation.js"></script><script src="modal-details.js"></script><script src="direct-links.js"></script><script src="progress.js"></script><script src="daily-event.js"></script><script src="quiz.js"></script>
+  <script src="data.js"></script><script src="event-details.js"></script><script src="illustrations.js"></script><script src="app.js"></script><script src="navigation.js"></script><script src="modal-details.js"></script><script src="direct-links.js"></script><script src="progress.js"></script><script src="daily-event.js"></script><script src="quiz.js"></script><script src="map.js"></script>
 </body>
 </html>
