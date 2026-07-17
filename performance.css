@@ -1,0 +1,6 @@
+.daily-event,.quiz-panel,.map-panel,.reading-settings,.progress-panel{content-visibility:auto;contain-intrinsic-size:auto 420px}
+.timeline{contain:layout style}
+.century-group{contain:layout style paint;contain-intrinsic-size:auto 900px}
+.event-card{contain:layout style paint}
+.history-map{contain:strict}
+@media(prefers-reduced-data:reduce){.event-image,.daily-event img{content-visibility:auto}}

@@ -5,10 +5,13 @@
   const navigationList = document.getElementById('centuryNavigationList');
   const backToTop = document.getElementById('backToTop');
   const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
-  let scheduled = false;
+  let scrollScheduled = false;
+  let refreshScheduled = false;
   let activeCentury = '';
+  let sections = [];
+  let sectionSignature = '';
 
-  function centurySections() {
+  function readSections() {
     return [...timeline.querySelectorAll('.century-group')];
   }
 
@@ -24,30 +27,40 @@
   }
 
   function updateScrollState() {
-    scheduled = false;
-    const sections = centurySections();
+    scrollScheduled = false;
     const threshold = 155;
     let current = sections[0] || null;
 
-    sections.forEach(section => {
-      if (section.getBoundingClientRect().top <= threshold) current = section;
-    });
+    for (const section of sections) {
+      if (section.getBoundingClientRect().top > threshold) break;
+      current = section;
+    }
 
     setActiveCentury(current ? current.dataset.century : '');
-    backToTop.classList.toggle('visible', window.scrollY > 600);
-    backToTop.setAttribute('aria-hidden', window.scrollY > 600 ? 'false' : 'true');
+    const showBackToTop = window.scrollY > 600;
+    backToTop.classList.toggle('visible', showBackToTop);
+    backToTop.setAttribute('aria-hidden', showBackToTop ? 'false' : 'true');
   }
 
   function scheduleScrollUpdate() {
-    if (scheduled) return;
-    scheduled = true;
+    if (scrollScheduled) return;
+    scrollScheduled = true;
     window.requestAnimationFrame(updateScrollState);
   }
 
   function refreshNavigation() {
-    const sections = centurySections();
-    const fragment = document.createDocumentFragment();
+    refreshScheduled = false;
+    const nextSections = readSections();
+    const nextSignature = nextSections.map(section => section.dataset.century || '').join('|');
+    sections = nextSections;
 
+    if (nextSignature === sectionSignature) {
+      scheduleScrollUpdate();
+      return;
+    }
+
+    sectionSignature = nextSignature;
+    const fragment = document.createDocumentFragment();
     sections.forEach((section, index) => {
       const century = section.dataset.century || `Век ${index + 1}`;
       section.id = `century-section-${index + 1}`;
@@ -65,6 +78,12 @@
     navigation.hidden = sections.length === 0;
     activeCentury = '';
     scheduleScrollUpdate();
+  }
+
+  function scheduleNavigationRefresh() {
+    if (refreshScheduled) return;
+    refreshScheduled = true;
+    window.requestAnimationFrame(refreshNavigation);
   }
 
   navigationList.addEventListener('click', event => {
@@ -86,7 +105,7 @@
     });
   });
 
-  const timelineObserver = new MutationObserver(refreshNavigation);
+  const timelineObserver = new MutationObserver(scheduleNavigationRefresh);
   timelineObserver.observe(timeline, { childList: true });
   window.addEventListener('scroll', scheduleScrollUpdate, { passive: true });
   window.addEventListener('resize', scheduleScrollUpdate, { passive: true });
