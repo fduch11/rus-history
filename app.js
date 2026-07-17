@@ -12,8 +12,49 @@
     defaultPeriod: 'Все',
     defaultCentury: 'Все века',
     defaultSort: 'oldest',
-    validSorts: Object.freeze(['oldest', 'newest', 'title'])
+    validSorts: Object.freeze(['oldest', 'newest', 'title']),
+    defaultRoute: ''
   });
+
+  const STUDY_ROUTES = Object.freeze([
+    Object.freeze({
+      id: 'statehood',
+      title: 'Становление государственности',
+      description: 'От первых княжеских центров до имперской и конституционной модели государства.',
+      ids: Object.freeze([1, 2, 8, 9, 10, 13, 14, 37, 42, 72, 108])
+    }),
+    Object.freeze({
+      id: 'external-threats',
+      title: 'Борьба с внешними угрозами',
+      description: 'Ключевые столкновения с Ордой, западными противниками, Наполеоном и нацистской Германией.',
+      ids: Object.freeze([19, 23, 24, 30, 37, 68, 81, 84, 102])
+    }),
+    Object.freeze({
+      id: 'reforms',
+      title: 'Реформы и переустройство',
+      description: 'Маршрут по событиям, где менялись право, управление, общественный строй и модель развития.',
+      ids: Object.freeze([8, 9, 14, 39, 42, 60, 72, 85, 86, 92, 97, 106, 108])
+    }),
+    Object.freeze({
+      id: 'expansion',
+      title: 'Расширение пространства',
+      description: 'Как менялись границы и стратегическое положение государства от Волги до Сибири и Балтики.',
+      ids: Object.freeze([2, 45, 46, 50, 69, 72, 77, 89])
+    }),
+    Object.freeze({
+      id: 'revolutions',
+      title: 'Революции и сломы эпох',
+      description: 'Маршрут по кризисам, которые радикально меняли политический порядок России и СССР.',
+      ids: Object.freeze([57, 81, 85, 94, 95, 96, 98, 106, 107, 108])
+    }),
+    Object.freeze({
+      id: 'science',
+      title: 'Наука, право и модернизация',
+      description: 'События, через которые видно развитие права, институтов, техники и научного престижа.',
+      ids: Object.freeze([9, 39, 69, 72, 83, 85, 104, 105, 108])
+    })
+  ]);
+  const ROUTES_BY_ID = new Map(STUDY_ROUTES.map(route => [route.id, route]));
 
   const Storage = (() => {
     const normalizeIds = value => {
@@ -30,6 +71,7 @@
         period: AppConfig.defaultPeriod,
         century: AppConfig.defaultCentury,
         sort: AppConfig.defaultSort,
+        activeRoute: AppConfig.defaultRoute,
         favoritesOnly: false,
         unviewedOnly: false
       }
@@ -37,6 +79,7 @@
 
     const normalizeTheme = value => AppConfig.validThemes.includes(value) ? value : null;
     const normalizeSort = value => AppConfig.validSorts.includes(value) ? value : AppConfig.defaultSort;
+    const normalizeRoute = value => typeof value === 'string' && ROUTES_BY_ID.has(value) ? value : AppConfig.defaultRoute;
 
     const normalize = value => {
       const defaults = createDefaults();
@@ -57,6 +100,7 @@
           period: typeof ui.period === 'string' ? ui.period : AppConfig.defaultPeriod,
           century: typeof ui.century === 'string' ? ui.century : AppConfig.defaultCentury,
           sort: normalizeSort(ui.sort),
+          activeRoute: normalizeRoute(ui.activeRoute),
           favoritesOnly: Boolean(ui.favoritesOnly),
           unviewedOnly: Boolean(ui.unviewedOnly)
         }
@@ -119,6 +163,7 @@
     period: persisted.interface.period,
     century: persisted.interface.century,
     sort: persisted.interface.sort,
+    activeRoute: persisted.interface.activeRoute,
     favoritesOnly: persisted.interface.favoritesOnly,
     unviewedOnly: persisted.interface.unviewedOnly,
     favorites: new Set(persisted.collections.favorites),
@@ -136,6 +181,10 @@
     searchInput: document.getElementById('searchInput'),
     centuryFilter: document.getElementById('centuryFilter'),
     sortSelect: document.getElementById('sortSelect'),
+    routesPanel: document.getElementById('studyRoutes'),
+    routesList: document.getElementById('routesList'),
+    routesStatus: document.getElementById('routesStatus'),
+    clearRoute: document.getElementById('clearRoute'),
     favoritesOnly: document.getElementById('favoritesOnly'),
     unviewedOnly: document.getElementById('unviewedOnly'),
     resetFilters: document.getElementById('resetFilters'),
@@ -179,6 +228,7 @@
         period: state.period,
         century: state.century,
         sort: state.sort,
+        activeRoute: state.activeRoute,
         favoritesOnly: state.favoritesOnly,
         unviewedOnly: state.unviewedOnly
       }
@@ -246,11 +296,25 @@
     ].map(flattenText).join(' ').toLocaleLowerCase('ru');
   }
 
+  function routeById(id) {
+    return ROUTES_BY_ID.get(id) || null;
+  }
+
+  function activeRoute() {
+    return routeById(state.activeRoute);
+  }
+
+  function routeIdsSet(route) {
+    return route ? new Set(route.ids) : null;
+  }
+
   function visibleEvents() {
     const query = state.query.trim().toLocaleLowerCase('ru');
+    const activeRouteFilter = routeIdsSet(activeRoute());
     const filtered = HISTORY_EVENTS.filter(event => {
       return (state.period === AppConfig.defaultPeriod || event.period === state.period)
         && (state.century === AppConfig.defaultCentury || event.century === state.century)
+        && (!activeRouteFilter || activeRouteFilter.has(event.id))
         && (!state.favoritesOnly || state.favorites.has(event.id))
         && (!state.unviewedOnly || !state.viewed.has(event.id))
         && (!state.mapFilterIds || state.mapFilterIds.has(event.id))
@@ -337,8 +401,11 @@
     });
 
     elements.timeline.replaceChildren(fragment);
+    renderRoutes();
     const mapSuffix = state.mapFilterLabel ? ` · Карта: ${state.mapFilterLabel}` : '';
-    elements.resultCount.textContent = `Найдено: ${events.length} · Просмотрено: ${state.viewed.size} · Изучено: ${state.studied.size}${mapSuffix}`;
+    const route = activeRoute();
+    const routeSuffix = route ? ` · Маршрут: ${route.title}` : '';
+    elements.resultCount.textContent = `Найдено: ${events.length} · Просмотрено: ${state.viewed.size} · Изучено: ${state.studied.size}${routeSuffix}${mapSuffix}`;
     elements.emptyState.hidden = events.length !== 0;
   }
 
@@ -357,6 +424,78 @@
     state.mapFilterLabel = '';
     render();
     if (notify) window.dispatchEvent(new CustomEvent('rus-history:map-filter-cleared'));
+  }
+
+  function routeProgress(route) {
+    const studiedCount = route.ids.filter(id => state.studied.has(id)).length;
+    const viewedCount = route.ids.filter(id => state.viewed.has(id)).length;
+    const total = route.ids.length;
+    return {
+      studiedCount,
+      viewedCount,
+      total,
+      percent: total ? Math.round(studiedCount / total * 100) : 0,
+      complete: total > 0 && studiedCount === total
+    };
+  }
+
+  function createRouteCard(route) {
+    const progress = routeProgress(route);
+    const active = state.activeRoute === route.id;
+    const card = createElement('article', `route-card${active ? ' active' : ''}`);
+    card.dataset.routeId = route.id;
+
+    const header = createElement('div', 'route-card-header');
+    const titleWrap = createElement('div', 'route-card-title-wrap');
+    titleWrap.append(createElement('h3', 'route-card-title', route.title));
+
+    const meta = createElement('div', 'route-card-meta');
+    const totalBadge = createElement('span', 'route-card-badge', `${route.ids.length} событий`);
+    meta.append(totalBadge);
+    if (active) meta.append(createElement('span', 'route-card-badge active', 'Активный'));
+    if (progress.complete) meta.append(createElement('span', 'route-card-badge complete', 'Завершён'));
+    titleWrap.append(meta);
+
+    const actionButton = createElement('button', `route-action-button${active ? ' primary' : ''}`, active ? 'Продолжить' : 'Открыть маршрут');
+    actionButton.type = 'button';
+    actionButton.dataset.routeAction = route.id;
+    header.append(titleWrap, actionButton);
+
+    const description = createElement('p', 'route-card-description', route.description);
+    const progressText = createElement('p', 'route-progress-text', `Изучено ${progress.studiedCount} из ${progress.total} · Просмотрено ${progress.viewedCount} · ${progress.percent}%`);
+    const track = createElement('div', 'progress-track');
+    track.setAttribute('role', 'progressbar');
+    track.setAttribute('aria-label', `Прогресс маршрута «${route.title}»`);
+    track.setAttribute('aria-valuemin', '0');
+    track.setAttribute('aria-valuemax', String(progress.total));
+    track.setAttribute('aria-valuenow', String(progress.studiedCount));
+    const fill = createElement('span', 'progress-fill');
+    fill.style.width = `${progress.percent}%`;
+    track.append(fill);
+
+    const actions = createElement('div', 'route-card-actions');
+    actions.append(progressText);
+
+    card.append(header, description, track, actions);
+    return card;
+  }
+
+  function renderRoutes() {
+    if (!elements.routesPanel || !elements.routesList || !elements.routesStatus || !elements.clearRoute) return;
+    const fragment = document.createDocumentFragment();
+    STUDY_ROUTES.forEach(route => fragment.append(createRouteCard(route)));
+    elements.routesList.replaceChildren(fragment);
+
+    const route = activeRoute();
+    if (!route) {
+      elements.routesStatus.textContent = `Доступно ${STUDY_ROUTES.length} маршрутов для последовательного изучения истории.`;
+      elements.clearRoute.hidden = true;
+      return;
+    }
+
+    const progress = routeProgress(route);
+    elements.routesStatus.textContent = `Активный маршрут: ${route.title}. Изучено ${progress.studiedCount} из ${progress.total} событий.`;
+    elements.clearRoute.hidden = false;
   }
 
   function updateModalFavorite() {
@@ -404,6 +543,7 @@
     state.period = AppConfig.defaultPeriod;
     state.century = AppConfig.defaultCentury;
     state.sort = AppConfig.defaultSort;
+    state.activeRoute = AppConfig.defaultRoute;
     state.favoritesOnly = false;
     state.unviewedOnly = false;
     elements.searchInput.value = '';
@@ -413,6 +553,35 @@
     elements.unviewedOnly.checked = false;
     createPeriodFilters();
     clearMapFilter();
+    saveState();
+    render();
+  }
+
+  function activateRoute(routeId) {
+    const route = routeById(routeId);
+    if (!route) return;
+    state.activeRoute = route.id;
+    state.query = '';
+    state.period = AppConfig.defaultPeriod;
+    state.century = AppConfig.defaultCentury;
+    state.sort = AppConfig.defaultSort;
+    state.favoritesOnly = false;
+    state.unviewedOnly = false;
+    elements.searchInput.value = '';
+    elements.centuryFilter.value = state.century;
+    elements.sortSelect.value = state.sort;
+    elements.favoritesOnly.checked = false;
+    elements.unviewedOnly.checked = false;
+    createPeriodFilters();
+    clearMapFilter();
+    saveState();
+    render();
+    elements.routesPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function clearRoute() {
+    if (!state.activeRoute) return;
+    state.activeRoute = AppConfig.defaultRoute;
     saveState();
     render();
   }
@@ -458,6 +627,16 @@
 
   elements.resetFilters.addEventListener('click', resetFilters);
   elements.themeToggle.addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
+  if (elements.routesList) {
+    elements.routesList.addEventListener('click', event => {
+      const button = event.target.closest('[data-route-action]');
+      if (!button) return;
+      activateRoute(button.dataset.routeAction);
+    });
+  }
+  if (elements.clearRoute) {
+    elements.clearRoute.addEventListener('click', clearRoute);
+  }
 
   elements.timeline.addEventListener('click', event => {
     const favoriteButton = event.target.closest('[data-favorite-id]');
