@@ -16,6 +16,10 @@
     <button id="themeToggle" class="icon-button" type="button" aria-label="Переключить тему">☾</button>
   </header>
 
+  <nav id="centuryNavigation" class="century-navigation" aria-label="Навигация по векам" hidden>
+    <div id="centuryLinks" class="century-links"></div>
+  </nav>
+
   <main>
     <section class="controls" aria-label="Поиск, фильтры и сортировка">
       <label class="search-box">
@@ -62,6 +66,8 @@
     </div>
   </main>
 
+  <button id="backToTop" class="back-to-top" type="button" aria-label="Вернуться наверх" hidden>↑</button>
+
   <dialog id="eventModal" class="modal">
     <article class="modal-card">
       <button id="modalClose" class="modal-close" type="button" aria-label="Закрыть">×</button>
@@ -80,5 +86,6 @@
   <script src="event-details.js"></script>
   <script src="illustrations.js"></script>
   <script src="app.js"></script>
+  <script src="century-navigation.js"></script>
 </body>
 </html>
