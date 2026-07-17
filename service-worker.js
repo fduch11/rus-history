@@ -71,7 +71,10 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true })
-      .then(cached => cached || caches.match('./index.html'))
+    caches.match(event.request, { ignoreSearch: true }).then(cached => {
+      if (cached) return cached;
+      if (event.request.mode === 'navigate') return caches.match('./index.html');
+      return Response.error();
+    })
   );
 });
