@@ -9,26 +9,76 @@
 </head>
 <body>
   <header class="app-header">
-    <div><p class="eyebrow">Историческая лента</p><h1>История Руси</h1></div>
+    <div>
+      <p class="eyebrow">Историческая лента</p>
+      <h1>История Руси</h1>
+    </div>
     <button id="themeToggle" class="icon-button" type="button" aria-label="Переключить тему">☾</button>
   </header>
+
   <main>
-    <section class="controls" aria-label="Поиск и фильтры">
-      <label class="search-box"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Поиск по событиям" autocomplete="off"></label>
+    <section class="controls" aria-label="Поиск, фильтры и сортировка">
+      <label class="search-box">
+        <span aria-hidden="true">⌕</span>
+        <input id="searchInput" type="search" placeholder="Поиск по событиям, местам и личностям" autocomplete="off">
+      </label>
+
       <div id="periodFilters" class="filters" role="group" aria-label="Исторические периоды"></div>
-      <label class="favorites-switch"><input id="favoritesOnly" type="checkbox"><span>Только избранное</span></label>
+
+      <div class="select-grid">
+        <label class="select-field">
+          <span>Век</span>
+          <select id="centuryFilter" aria-label="Фильтр по веку"></select>
+        </label>
+        <label class="select-field">
+          <span>Сортировка</span>
+          <select id="sortSelect" aria-label="Сортировка событий">
+            <option value="oldest">От древних к новым</option>
+            <option value="newest">От новых к древним</option>
+            <option value="title">По названию</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label class="favorites-switch">
+          <input id="favoritesOnly" type="checkbox">
+          <span>Только избранное</span>
+        </label>
+        <label class="favorites-switch">
+          <input id="unviewedOnly" type="checkbox">
+          <span>Только непросмотренные</span>
+        </label>
+      </div>
+
+      <button id="resetFilters" class="reset-button" type="button">Сбросить фильтры</button>
     </section>
+
     <p id="resultCount" class="result-count" aria-live="polite"></p>
     <section id="timeline" class="timeline" aria-label="Исторические события"></section>
-    <div id="emptyState" class="empty-state" hidden><strong>Ничего не найдено</strong><span>Измените запрос или выбранный период.</span></div>
+    <div id="emptyState" class="empty-state" hidden>
+      <strong>Ничего не найдено</strong>
+      <span>Измените запрос, фильтры или сортировку.</span>
+    </div>
   </main>
+
   <dialog id="eventModal" class="modal">
     <article class="modal-card">
       <button id="modalClose" class="modal-close" type="button" aria-label="Закрыть">×</button>
       <img id="modalImage" src="images/fallback.svg" alt="">
-      <div class="modal-content"><span id="modalPeriod" class="period-badge"></span><p id="modalYear" class="modal-year"></p><h2 id="modalTitle"></h2><p id="modalDescription"></p><button id="modalFavorite" class="favorite-action" type="button"></button></div>
+      <div class="modal-content">
+        <span id="modalPeriod" class="period-badge"></span>
+        <p id="modalYear" class="modal-year"></p>
+        <h2 id="modalTitle"></h2>
+        <p id="modalDescription"></p>
+        <button id="modalFavorite" class="favorite-action" type="button"></button>
+      </div>
     </article>
   </dialog>
-  <script src="data.js"></script><script src="event-details.js"></script><script src="illustrations.js"></script><script src="app.js"></script>
+
+  <script src="data.js"></script>
+  <script src="event-details.js"></script>
+  <script src="illustrations.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
