@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const AppConfig = Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: 3,
     storageKey: 'rusHistory',
     legacyKeys: Object.freeze({
       theme: 'rusHistoryTheme',
@@ -13,39 +13,32 @@
   });
 
   const Storage = (() => {
-    const createDefaults = () => ({
-      schemaVersion: AppConfig.schemaVersion,
-      preferences: {
-        theme: null
-      },
-      collections: {
-        favorites: []
-      },
-      interface: {
-        query: '',
-        period: AppConfig.defaultPeriod,
-        favoritesOnly: false
-      }
-    });
-
-    const normalizeFavorites = value => {
+    const normalizeIds = value => {
       if (!Array.isArray(value)) return [];
       return [...new Set(value.map(Number).filter(Number.isFinite))];
     };
+
+    const createDefaults = () => ({
+      schemaVersion: AppConfig.schemaVersion,
+      preferences: { theme: null },
+      collections: { favorites: [], viewed: [], studied: [] },
+      interface: { query: '', period: AppConfig.defaultPeriod, favoritesOnly: false }
+    });
 
     const normalizeTheme = value => AppConfig.validThemes.includes(value) ? value : null;
 
     const normalize = value => {
       const defaults = createDefaults();
       if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults;
-
       return {
         schemaVersion: AppConfig.schemaVersion,
         preferences: {
           theme: normalizeTheme(value.preferences && value.preferences.theme)
         },
         collections: {
-          favorites: normalizeFavorites(value.collections && value.collections.favorites)
+          favorites: normalizeIds(value.collections && value.collections.favorites),
+          viewed: normalizeIds(value.collections && value.collections.viewed),
+          studied: normalizeIds(value.collections && value.collections.studied)
         },
         interface: {
           query: typeof (value.interface && value.interface.query) === 'string' ? value.interface.query : '',
@@ -83,32 +76,18 @@
 
     const migrateLegacy = () => {
       const migrated = createDefaults();
-      const legacyTheme = (() => {
-        try {
-          return localStorage.getItem(AppConfig.legacyKeys.theme);
-        } catch {
-          return null;
-        }
-      })();
-      const legacyFavorites = readJson(AppConfig.legacyKeys.favorites);
-
-      migrated.preferences.theme = normalizeTheme(legacyTheme);
-      migrated.collections.favorites = normalizeFavorites(legacyFavorites);
+      try {
+        migrated.preferences.theme = normalizeTheme(localStorage.getItem(AppConfig.legacyKeys.theme));
+      } catch {
+        migrated.preferences.theme = null;
+      }
+      migrated.collections.favorites = normalizeIds(readJson(AppConfig.legacyKeys.favorites));
       return migrated;
     };
 
     const load = () => {
       const stored = readJson(AppConfig.storageKey);
-      let data;
-
-      if (stored && stored.schemaVersion === AppConfig.schemaVersion) {
-        data = normalize(stored);
-      } else if (stored && typeof stored === 'object') {
-        data = normalize(stored);
-      } else {
-        data = migrateLegacy();
-      }
-
+      const data = stored && typeof stored === 'object' ? normalize(stored) : migrateLegacy();
       writeJson(AppConfig.storageKey, data);
       remove(AppConfig.legacyKeys.theme);
       remove(AppConfig.legacyKeys.favorites);
@@ -116,7 +95,6 @@
     };
 
     const save = data => writeJson(AppConfig.storageKey, normalize(data));
-
     return Object.freeze({ load, save });
   })();
 
@@ -126,6 +104,8 @@
     period: persisted.interface.period,
     favoritesOnly: persisted.interface.favoritesOnly,
     favorites: new Set(persisted.collections.favorites),
+    viewed: new Set(persisted.collections.viewed),
+    studied: new Set(persisted.collections.studied),
     theme: persisted.preferences.theme,
     activeEventId: null
   };
@@ -148,11 +128,22 @@
     modalDescription: document.getElementById('modalDescription')
   };
 
+  const createElement = (tag, className, text) => {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text !== undefined) element.textContent = text;
+    return element;
+  };
+
   function saveState() {
     Storage.save({
       schemaVersion: AppConfig.schemaVersion,
       preferences: { theme: state.theme },
-      collections: { favorites: [...state.favorites] },
+      collections: {
+        favorites: [...state.favorites],
+        viewed: [...state.viewed],
+        studied: [...state.studied]
+      },
       interface: {
         query: state.query,
         period: state.period,
@@ -177,7 +168,15 @@
   function createFilters() {
     const periods = [AppConfig.defaultPeriod, ...new Set(HISTORY_EVENTS.map(event => event.period))];
     if (!periods.includes(state.period)) state.period = AppConfig.defaultPeriod;
-    elements.filters.innerHTML = periods.map(period => `<button class="filter-button${period === state.period ? ' active' : ''}" type="button" data-period="${period}">${period}</button>`).join('');
+    elements.filters.replaceChildren();
+    const fragment = document.createDocumentFragment();
+    periods.forEach(period => {
+      const button = createElement('button', `filter-button${period === state.period ? ' active' : ''}`, period);
+      button.type = 'button';
+      button.dataset.period = period;
+      fragment.append(button);
+    });
+    elements.filters.append(fragment);
   }
 
   function visibleEvents() {
@@ -190,13 +189,80 @@
     });
   }
 
+  function createStatusBadge(label, className) {
+    return createElement('span', `event-status ${className}`, label);
+  }
+
+  function createEventCard(event) {
+    const favorite = state.favorites.has(event.id);
+    const viewed = state.viewed.has(event.id);
+    const studied = state.studied.has(event.id);
+    const card = createElement('article', `event-card${viewed ? ' is-viewed' : ''}${studied ? ' is-studied' : ''}`);
+    card.dataset.id = String(event.id);
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `${event.year}. ${event.title}`);
+
+    const image = createElement('img', 'event-image');
+    image.src = event.image;
+    image.alt = `Иллюстрация к событию «${event.title}»`;
+    image.loading = 'lazy';
+    image.decoding = 'async';
+
+    const body = createElement('div', 'event-body');
+    const top = createElement('div', 'event-top');
+    const heading = createElement('div', 'event-heading');
+    heading.append(createElement('p', 'event-year', event.year), createElement('h2', 'event-title', event.title));
+
+    const favoriteButton = createElement('button', `favorite-button${favorite ? ' active' : ''}`, favorite ? '★' : '☆');
+    favoriteButton.type = 'button';
+    favoriteButton.dataset.favoriteId = String(event.id);
+    favoriteButton.setAttribute('aria-label', favorite ? 'Удалить из избранного' : 'Добавить в избранное');
+    top.append(heading, favoriteButton);
+
+    const summary = createElement('p', 'event-summary', event.summary);
+    const meta = createElement('div', 'event-meta');
+    meta.append(createElement('span', 'period-badge', event.period));
+    if (event.place) meta.append(createElement('span', 'place-badge', event.place));
+
+    const footer = createElement('div', 'event-footer');
+    const statuses = createElement('div', 'event-statuses');
+    if (viewed) statuses.append(createStatusBadge('Просмотрено', 'viewed'));
+    if (studied) statuses.append(createStatusBadge('Изучено', 'studied'));
+
+    const studiedButton = createElement('button', `study-button${studied ? ' active' : ''}`, studied ? '✓ Изучено' : 'Отметить изученным');
+    studiedButton.type = 'button';
+    studiedButton.dataset.studyId = String(event.id);
+    studiedButton.setAttribute('aria-pressed', String(studied));
+    footer.append(statuses, studiedButton);
+
+    body.append(top, summary, meta, footer);
+    card.append(image, body);
+    return card;
+  }
+
   function render() {
     const events = visibleEvents();
-    elements.timeline.innerHTML = events.map(event => {
-      const favorite = state.favorites.has(event.id);
-      return `<article class="event-card" data-id="${event.id}" tabindex="0" aria-label="${event.year}. ${event.title}"><img class="event-image" src="${event.image}" alt="Иллюстрация к событию «${event.title}»"><div class="event-body"><div class="event-top"><div><p class="event-year">${event.year}</p><h2 class="event-title">${event.title}</h2></div><button class="favorite-button${favorite ? ' active' : ''}" type="button" data-favorite-id="${event.id}" aria-label="${favorite ? 'Удалить из избранного' : 'Добавить в избранное'}">${favorite ? '★' : '☆'}</button></div><p class="event-summary">${event.summary}</p><span class="period-badge">${event.period}</span></div></article>`;
-    }).join('');
-    elements.resultCount.textContent = `Событий: ${events.length}`;
+    const groups = new Map();
+    events.forEach(event => {
+      if (!groups.has(event.century)) groups.set(event.century, []);
+      groups.get(event.century).push(event);
+    });
+
+    const fragment = document.createDocumentFragment();
+    groups.forEach((groupEvents, century) => {
+      const section = createElement('section', 'century-group');
+      section.dataset.century = century;
+      const header = createElement('header', 'century-header');
+      header.append(createElement('h2', 'century-title', century), createElement('span', 'century-count', `${groupEvents.length} событий`));
+      const list = createElement('div', 'century-events');
+      groupEvents.forEach(event => list.append(createEventCard(event)));
+      section.append(header, list);
+      fragment.append(section);
+    });
+
+    elements.timeline.replaceChildren(fragment);
+    elements.resultCount.textContent = `Событий: ${events.length} · Просмотрено: ${state.viewed.size} · Изучено: ${state.studied.size}`;
     elements.emptyState.hidden = events.length !== 0;
   }
 
@@ -212,10 +278,24 @@
     if (state.activeEventId === id) updateModalFavorite();
   }
 
+  function toggleStudied(id) {
+    if (state.studied.has(id)) {
+      state.studied.delete(id);
+    } else {
+      state.studied.add(id);
+      state.viewed.add(id);
+    }
+    saveState();
+    render();
+  }
+
   function openModal(id) {
     const event = HISTORY_EVENTS.find(item => item.id === id);
     if (!event) return;
     state.activeEventId = id;
+    state.viewed.add(id);
+    saveState();
+    render();
     elements.modalImage.src = event.image;
     elements.modalImage.alt = `Иллюстрация к событию «${event.title}»`;
     elements.modalPeriod.textContent = event.period;
@@ -254,6 +334,12 @@
     if (favoriteButton) {
       event.stopPropagation();
       toggleFavorite(Number(favoriteButton.dataset.favoriteId));
+      return;
+    }
+    const studiedButton = event.target.closest('[data-study-id]');
+    if (studiedButton) {
+      event.stopPropagation();
+      toggleStudied(Number(studiedButton.dataset.studyId));
       return;
     }
     const card = event.target.closest('[data-id]');
