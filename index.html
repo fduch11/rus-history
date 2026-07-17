@@ -54,6 +54,10 @@
       <button id="resetFilters" class="reset-button" type="button">Сбросить фильтры</button>
     </section>
 
+    <nav id="centuryNavigation" class="century-navigation" aria-label="Навигация по векам" hidden>
+      <div id="centuryNavigationList" class="century-navigation-list"></div>
+    </nav>
+
     <p id="resultCount" class="result-count" aria-live="polite"></p>
     <section id="timeline" class="timeline" aria-label="Исторические события"></section>
     <div id="emptyState" class="empty-state" hidden>
@@ -61,6 +65,8 @@
       <span>Измените запрос, фильтры или сортировку.</span>
     </div>
   </main>
+
+  <button id="backToTop" class="back-to-top" type="button" aria-label="Вернуться наверх" aria-hidden="true">↑</button>
 
   <dialog id="eventModal" class="modal">
     <article class="modal-card">
@@ -80,5 +86,6 @@
   <script src="event-details.js"></script>
   <script src="illustrations.js"></script>
   <script src="app.js"></script>
+  <script src="navigation.js"></script>
 </body>
 </html>
