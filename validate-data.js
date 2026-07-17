@@ -11,6 +11,12 @@ const REQUIRED_FIELDS = Object.freeze([
   'people', 'fact', 'sources', 'related', 'image'
 ]);
 
+const CONTENT_WARNING_LIMIT = 6;
+const GENERIC_DESCRIPTION_SUFFIX = 'Событие стало заметной частью исторического развития государства и общества.';
+const GENERIC_COURSE_PREFIX = 'Основные действия разворачивались в месте';
+const GENERIC_FACT_PREFIX = 'Для хронологической навигации событие отнесено к периоду';
+const GENERIC_CAUSE_FRAGMENT = 'Политические, военные или социальные процессы';
+
 function loadEvents() {
   const context = vm.createContext({ console });
   ['data.js', 'event-details.js', 'illustrations.js'].forEach(file => {
@@ -24,9 +30,51 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function normalizeWhitespace(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function sameString(a, b) {
+  return normalizeWhitespace(a) === normalizeWhitespace(b);
+}
+
+function isValidCoordinatePair(value) {
+  return Boolean(value)
+    && typeof value === 'object'
+    && Number.isFinite(value.lat)
+    && Number.isFinite(value.lon)
+    && value.lat >= -90
+    && value.lat <= 90
+    && value.lon >= -180
+    && value.lon <= 180;
+}
+
+function createWarningTracker() {
+  return new Map();
+}
+
+function addWarning(tracker, code, label) {
+  if (!tracker.has(code)) tracker.set(code, []);
+  tracker.get(code).push(label);
+}
+
+function formatWarning(code, labels) {
+  const samples = labels.slice(0, CONTENT_WARNING_LIMIT).join(', ');
+  const suffix = labels.length > CONTENT_WARNING_LIMIT ? ` и ещё ${labels.length - CONTENT_WARNING_LIMIT}` : '';
+  const descriptions = {
+    genericDescription: 'описание содержит шаблонную добавку вместо содержательного расширения',
+    genericCourse: 'поле course построено по однотипному шаблону',
+    genericFact: 'поле fact содержит только техническую фразу о периоде',
+    genericCauses: 'поле causes выглядит шаблонным и не раскрывает причины события',
+    adjacentRelatedOnly: 'related содержит только соседние по порядку ID без содержательных связей',
+    repeatedSources: 'источники совпадают с типовым набором периода без уточнения для события'
+  };
+  return `${descriptions[code]}: ${labels.length} событий (${samples}${suffix})`;
+}
+
 function validate() {
   const errors = [];
-  const warnings = [];
+  const warningTracker = createWarningTracker();
   let events;
 
   try {
@@ -45,6 +93,7 @@ function validate() {
 
   const ids = new Set();
   const years = [];
+  const sourcesByPeriod = new Map();
 
   (events || []).forEach((event, index) => {
     const label = `Событие #${index + 1}${event && event.id !== undefined ? ` (id ${event.id})` : ''}`;
@@ -72,7 +121,7 @@ function validate() {
       years.push({ id: event.id, sortYear: event.sortYear });
     }
 
-    ['year', 'century', 'title', 'period', 'summary', 'description', 'course', 'fact', 'image'].forEach(field => {
+    ['year', 'century', 'title', 'period', 'place', 'summary', 'description', 'course', 'fact', 'image'].forEach(field => {
       if (!isNonEmptyString(event[field])) errors.push(`${label}: поле ${field} должно быть непустой строкой.`);
     });
 
@@ -86,10 +135,18 @@ function validate() {
       }
     });
 
+    if (!isValidCoordinatePair(event.coordinates)) {
+      errors.push(`${label}: coordinates должны содержать корректные lat/lon в допустимых диапазонах.`);
+    }
+
     if (Array.isArray(event.related)) {
       const uniqueRelated = new Set(event.related);
-      if (uniqueRelated.size !== event.related.length) warnings.push(`${label}: в related есть повторы.`);
+      if (uniqueRelated.size !== event.related.length) errors.push(`${label}: в related есть повторы.`);
       if (event.related.includes(event.id)) errors.push(`${label}: событие ссылается само на себя.`);
+
+      if (event.related.length > 0 && event.related.every(relatedId => relatedId === event.id - 1 || relatedId === event.id + 1)) {
+        addWarning(warningTracker, 'adjacentRelatedOnly', `${event.id} «${event.title}»`);
+      }
     }
 
     if (isNonEmptyString(event.image)) {
@@ -99,6 +156,34 @@ function validate() {
       } else if (!fs.existsSync(imagePath)) {
         errors.push(`${label}: изображение не найдено — ${event.image}.`);
       }
+    }
+
+    if (sameString(event.description, `${event.summary} ${GENERIC_DESCRIPTION_SUFFIX}`)) {
+      addWarning(warningTracker, 'genericDescription', `${event.id} «${event.title}»`);
+    }
+
+    if (normalizeWhitespace(event.course).startsWith(GENERIC_COURSE_PREFIX)) {
+      addWarning(warningTracker, 'genericCourse', `${event.id} «${event.title}»`);
+    }
+
+    if (normalizeWhitespace(event.fact).startsWith(GENERIC_FACT_PREFIX)) {
+      addWarning(warningTracker, 'genericFact', `${event.id} «${event.title}»`);
+    }
+
+    if (Array.isArray(event.causes)
+      && event.causes.length > 0
+      && event.causes.every(item => normalizeWhitespace(item).includes(GENERIC_CAUSE_FRAGMENT))) {
+      addWarning(warningTracker, 'genericCauses', `${event.id} «${event.title}»`);
+    }
+
+    if (Array.isArray(event.sources) && isNonEmptyString(event.period)) {
+      const normalizedSources = JSON.stringify(event.sources.map(normalizeWhitespace));
+      if (!sourcesByPeriod.has(event.period)) {
+        sourcesByPeriod.set(event.period, new Map());
+      }
+      const periodSources = sourcesByPeriod.get(event.period);
+      if (!periodSources.has(normalizedSources)) periodSources.set(normalizedSources, []);
+      periodSources.get(normalizedSources).push(`${event.id} «${event.title}»`);
     }
   });
 
@@ -117,6 +202,16 @@ function validate() {
     }
   }
 
+  sourcesByPeriod.forEach(periodSources => {
+    periodSources.forEach(labels => {
+      if (labels.length > 1) {
+        labels.forEach(label => addWarning(warningTracker, 'repeatedSources', label));
+      }
+    });
+  });
+
+  const warnings = [...warningTracker.entries()].map(([code, labels]) => formatWarning(code, labels));
+
   console.log(`Проверено событий: ${(events || []).length}`);
   console.log(`Ошибок: ${errors.length}; предупреждений: ${warnings.length}`);
   warnings.forEach(message => console.warn(`ПРЕДУПРЕЖДЕНИЕ: ${message}`));
@@ -124,8 +219,10 @@ function validate() {
 
   if (errors.length > 0) {
     process.exitCode = 1;
+  } else if (warnings.length === 0) {
+    console.log('Структура и базовое качество исторических данных корректны.');
   } else {
-    console.log('Структура исторических данных корректна.');
+    console.log('Структурные ошибки не найдены, но есть предупреждения по качеству данных.');
   }
 }
 
