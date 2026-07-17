@@ -1,0 +1,21 @@
+:root{--reading-scale:1}
+:root[data-text-size="small"]{--reading-scale:.92}
+:root[data-text-size="medium"]{--reading-scale:1}
+:root[data-text-size="large"]{--reading-scale:1.14}
+.reading-settings{display:grid;gap:12px;margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:var(--shadow)}
+.reading-settings-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.reading-settings h2{margin:0;font:700 23px/1.1 Georgia,serif}
+.reading-size-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.reading-size-button{min-height:44px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--text);font-weight:700}
+.reading-size-button.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.reading-size-button[data-text-size="small"]{font-size:13px}
+.reading-size-button[data-text-size="medium"]{font-size:16px}
+.reading-size-button[data-text-size="large"]{font-size:19px}
+.reading-status{min-height:20px;margin:0;color:var(--muted);font-size:13px}
+.event-summary,.modal-section p,.modal-section li,.daily-event-summary,.quiz-question,.quiz-feedback,.map-status,.progress-panel,.controls{font-size:calc(1em * var(--reading-scale))}
+.event-title{font-size:calc(21px * var(--reading-scale))}
+.modal h2{font-size:calc(28px * var(--reading-scale))}
+.modal-section h3{font-size:calc(18px * var(--reading-scale))}
+@media(prefers-contrast:more){:root{--line:currentColor}.event-card,.daily-event,.quiz-panel,.map-panel,.progress-panel,.reading-settings{box-shadow:none}.filter-button,.reading-size-button,.secondary-action,.reset-button{border-width:2px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media(max-width:380px){.reading-size-buttons{grid-template-columns:1fr}.reading-size-button{text-align:left;padding-inline:14px}}
