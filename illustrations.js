@@ -7,13 +7,13 @@
     ['Ледовое побоище', 'images/1242-ice-battle.svg'],
     ['Куликовская битва', 'images/1380-kulikovo.svg'],
     ['Основание Санкт-Петербурга', 'images/1703-petersburg.svg'],
-    ['Отечественная война 1812 года', 'images/1812-war.svg'],
-    ['Победа в Великой Отечественной войне', 'images/1945-victory.svg']
+    ['Отечественная война 1812 года', 'images/1812-war.svg']
   ]);
 
   function selectImage(event) {
     if (exact.has(event.title)) return exact.get(event.title);
     const text = `${event.title} ${event.summary}`.toLocaleLowerCase('ru');
+    if (text.includes('великая отечественная') || (event.sortYear >= 1941 && event.sortYear <= 1945)) return 'images/1945-victory.svg';
     if (text.includes('казан')) return 'images/kazan.svg';
     if (text.includes('монгол') || text.includes('ордын') || text.includes('батый')) return 'images/mongol-invasion.svg';
     if (text.includes('смут') || text.includes('ополчен') || text.includes('самозван')) return 'images/time-of-troubles.svg';
