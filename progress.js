@@ -1,7 +1,13 @@
 'use strict';
 
 (() => {
-  const STORAGE_KEY = 'rusHistory';
+  const STORAGE_KEYS = Object.freeze({
+    app: 'rusHistory',
+    quiz: 'rusHistoryQuiz',
+    reading: 'rusHistoryReading'
+  });
+  const BACKUP_FORMAT = 'rus-history-backup';
+  const BACKUP_VERSION = 2;
   const panel = document.getElementById('progressPanel');
   const overallText = document.getElementById('overallProgressText');
   const overallBar = document.getElementById('overallProgressBar');
@@ -21,13 +27,25 @@
     return [...new Set(value.map(Number).filter(Number.isFinite))];
   };
 
-  function readData() {
+  function readJson(key) {
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const parsed = JSON.parse(localStorage.getItem(key) || '{}');
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch {
       return {};
     }
+  }
+
+  function writeJson(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function removeKey(key) {
+    localStorage.removeItem(key);
+  }
+
+  function readAppData() {
+    return readJson(STORAGE_KEYS.app);
   }
 
   function collectionsFrom(data) {
@@ -72,7 +90,7 @@
   }
 
   function renderProgress() {
-    const collections = collectionsFrom(readData());
+    const collections = collectionsFrom(readAppData());
     const total = HISTORY_EVENTS.length;
     const studiedCount = HISTORY_EVENTS.filter(event => collections.studied.has(event.id)).length;
     const viewedCount = HISTORY_EVENTS.filter(event => collections.viewed.has(event.id)).length;
@@ -109,7 +127,7 @@
     setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
   }
 
-  function validateImportedData(value) {
+  function normalizeAppData(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid-root');
     const collections = value.collections;
     if (!collections || typeof collections !== 'object' || Array.isArray(collections)) throw new Error('invalid-collections');
@@ -125,9 +143,57 @@
     };
   }
 
+  function normalizeObject(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return value;
+  }
+
+  function createBackupPayload() {
+    return {
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      data: {
+        rusHistory: readAppData(),
+        rusHistoryQuiz: readJson(STORAGE_KEYS.quiz),
+        rusHistoryReading: readJson(STORAGE_KEYS.reading)
+      }
+    };
+  }
+
+  function normalizeImportedPayload(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid-payload');
+
+    if (value.format === BACKUP_FORMAT) {
+      const data = value.data;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('invalid-backup-data');
+      return {
+        app: normalizeAppData(data.rusHistory),
+        quiz: normalizeObject(data.rusHistoryQuiz),
+        reading: normalizeObject(data.rusHistoryReading)
+      };
+    }
+
+    return {
+      app: normalizeAppData(value),
+      quiz: {},
+      reading: {}
+    };
+  }
+
+  function writeImportedPayload(payload) {
+    writeJson(STORAGE_KEYS.app, payload.app);
+
+    if (Object.keys(payload.quiz).length > 0) writeJson(STORAGE_KEYS.quiz, payload.quiz);
+    else removeKey(STORAGE_KEYS.quiz);
+
+    if (Object.keys(payload.reading).length > 0) writeJson(STORAGE_KEYS.reading, payload.reading);
+    else removeKey(STORAGE_KEYS.reading);
+  }
+
   exportButton.addEventListener('click', () => {
-    downloadJson(readData());
-    status.textContent = 'Данные экспортированы в JSON.';
+    downloadJson(createBackupPayload());
+    status.textContent = 'Экспортированы прогресс, статистика тестов и настройки чтения.';
   });
 
   importButton.addEventListener('click', () => importInput.click());
@@ -138,8 +204,8 @@
     const reader = new FileReader();
     reader.addEventListener('load', () => {
       try {
-        const imported = validateImportedData(JSON.parse(String(reader.result || '')));
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+        const imported = normalizeImportedPayload(JSON.parse(String(reader.result || '')));
+        writeImportedPayload(imported);
         status.textContent = 'Данные импортированы. Приложение перезагружается.';
         window.location.reload();
       } catch {
@@ -155,9 +221,11 @@
   });
 
   resetButton.addEventListener('click', () => {
-    const confirmed = window.confirm('Удалить просмотренные, изученные и избранные события, а также сохранённые настройки?');
+    const confirmed = window.confirm('Удалить прогресс, избранное, статистику тестов и настройки чтения?');
     if (!confirmed) return;
-    localStorage.removeItem(STORAGE_KEY);
+    removeKey(STORAGE_KEYS.app);
+    removeKey(STORAGE_KEYS.quiz);
+    removeKey(STORAGE_KEYS.reading);
     status.textContent = 'Локальные данные удалены. Приложение перезагружается.';
     window.location.reload();
   });
@@ -165,7 +233,7 @@
   const observer = new MutationObserver(renderProgress);
   observer.observe(timeline, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   window.addEventListener('storage', event => {
-    if (event.key === STORAGE_KEY) renderProgress();
+    if (Object.values(STORAGE_KEYS).includes(event.key)) renderProgress();
   });
 
   renderProgress();
